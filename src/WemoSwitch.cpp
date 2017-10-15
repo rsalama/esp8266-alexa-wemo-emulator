@@ -62,8 +62,12 @@ void WemoSwitch::startWebServer(){
   //server->onNotFound(handleNotFound);
   server->begin();
 
+  Serial.printf("WebServer started on port: %d\r\n", localPort);
+
+#if 0
   Serial.println("WebServer started on port: ");
   Serial.println(localPort);
+#endif
 }
 
 void WemoSwitch::handleEventservice(){
@@ -154,9 +158,12 @@ void WemoSwitch::handleRoot(){
 void WemoSwitch::handleSetupXml(){
   Serial.println(" ########## Responding to setup.xml ... ########\n");
 
+#if 0
   IPAddress localIP = WiFi.localIP();
   char s[16];
   sprintf(s, "%d.%d.%d.%d", localIP[0], localIP[1], localIP[2], localIP[3]);
+  // USE localIP.toString().c_str()
+#endif
 
    String setup_xml = "<?xml version=\"1.0\"?>"
          "<root xmlns=\"urn:Belkin:device-1-0\">"
@@ -200,22 +207,27 @@ String WemoSwitch::getAlexaInvokeName() {
 }
 
 void WemoSwitch::respondToSearch(IPAddress& senderIP, unsigned int senderPort) {
+	Serial.printf("Sending response to: %s:%d ... ", senderIP.toString().c_str(), senderPort);
+#if 0
   Serial.println("");
   Serial.print("Sending response to ");
   Serial.println(senderIP);
   Serial.print("Port : ");
   Serial.println(senderPort);
+#endif
 
   IPAddress localIP = WiFi.localIP();
+#if 0
   char s[16];
   sprintf(s, "%d.%d.%d.%d", localIP[0], localIP[1], localIP[2], localIP[3]);
+#endif
 
   String response =
        "HTTP/1.1 200 OK\r\n"
        "CACHE-CONTROL: max-age=86400\r\n"
        "DATE: Sat, 26 Nov 2016 04:56:29 GMT\r\n"
        "EXT:\r\n"
-       "LOCATION: http://" + String(s) + ":" + String(localPort) + "/setup.xml\r\n"
+       "LOCATION: http://" + localIP.toString() + ":" + String(localPort) + "/setup.xml\r\n"
        "OPT: \"http://schemas.upnp.org/upnp/1/0/\"; ns=01\r\n"
        "01-NLS: b9200ebb-736d-4b93-bf03-835149d13983\r\n"
        "SERVER: Unspecified, UPnP/1.0, Unspecified\r\n"
@@ -227,5 +239,9 @@ void WemoSwitch::respondToSearch(IPAddress& senderIP, unsigned int senderPort) {
   UDP.write(response.c_str());
   UDP.endPacket();
 
-   Serial.println("Response sent !");
+  Serial.printf(" for uid: %s name: %s Done.\r\n", persistent_uuid.c_str(), device_name.c_str());
+
+#if 0
+  Serial.println("Response sent !");
+#endif
 }
