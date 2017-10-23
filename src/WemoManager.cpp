@@ -63,8 +63,7 @@ void WemoManager::addDevice(WemoSwitch& device) {
 
 void WemoManager::serverLoop() {
   int packetSize = UDP.parsePacket();
-  if (packetSize > 0)
-  {
+  if (packetSize > 0) {
     IPAddress senderIP = UDP.remoteIP();
     unsigned int senderPort = UDP.remotePort();
 

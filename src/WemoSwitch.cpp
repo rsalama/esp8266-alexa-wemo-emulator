@@ -1,33 +1,26 @@
 #include "WemoSwitch.h"
 #include "CallbackFunction.h"
 
-
-
 //<<constructor>>
-WemoSwitch::WemoSwitch(){
+WemoSwitch::WemoSwitch() :
+		pin(0), localPort(0), reverse(false) {
     //Serial.println("default constructor called");
 }
-//WemoSwitch::WemoSwitch(String alexaInvokeName,unsigned int port){
-WemoSwitch::WemoSwitch(String alexaInvokeName, unsigned int port, CallbackFunction oncb, CallbackFunction offcb){
-    uint32_t uniqueSwitchId = ESP.getChipId() + port;
-    char uuid[64];
-    sprintf_P(uuid, PSTR("38323636-4558-4dda-9188-cda0e6%02x%02x%02x"),
-          (uint16_t) ((uniqueSwitchId >> 16) & 0xff),
-          (uint16_t) ((uniqueSwitchId >>  8) & 0xff),
-          (uint16_t)   uniqueSwitchId        & 0xff);
 
-    serial = String(uuid);
-    persistent_uuid = "Socket-1_0-" + serial+"-"+ String(port);
+WemoSwitch::WemoSwitch(String alexaInvokeName, int i, unsigned int port, CallbackFunction cb, boolean rev) :
+		device_name(alexaInvokeName), pin(i), localPort(port) , callback(cb), reverse(rev) {
+	uint32_t uniqueSwitchId = ESP.getChipId() + port;
+	char uuid[64];
+	sprintf_P(uuid, PSTR("38323636-4558-4dda-9188-cda0e6%02x%02x%02x"),
+			(uint16_t) ((uniqueSwitchId >> 16) & 0xff),
+			(uint16_t) ((uniqueSwitchId >> 8) & 0xff),
+			(uint16_t) uniqueSwitchId & 0xff);
 
-    device_name = alexaInvokeName;
-    localPort = port;
-    onCallback = oncb;
-    offCallback = offcb;
+	serial = String(uuid);
+	persistent_uuid = "Socket-1_0-" + serial + "-" + String(port);
 
-    startWebServer();
+	startWebServer();
 }
-
-
 
 //<<destructor>>
 WemoSwitch::~WemoSwitch(){/*nothing to destruct*/}
@@ -71,7 +64,10 @@ void WemoSwitch::startWebServer(){
 }
 
 void WemoSwitch::handleEventservice(){
+#if 0
   Serial.println(" ########## Responding to eventservice.xml ... ########\n");
+#endif
+  Serial.printf(" ########## Responding to eventservice.xml (%s) ... ########\r\n", device_name.c_str());
 
   String eventservice_xml = "<scpd xmlns=\"urn:Belkin:service-1-0\">"
         "<actionList>"
@@ -106,23 +102,30 @@ void WemoSwitch::handleEventservice(){
 }
 
 void WemoSwitch::handleUpnpControl(){
-  Serial.println("########## Responding to  /upnp/control/basicevent1 ... ##########");
+  Serial.printf("########## Responding to %s /upnp/control/basicevent1 ... ##########\r\n", device_name.c_str());
+
+#if 0
+  Serial.println("########## Responding to  /upnp/control/basicevent1 (%s) ... ##########");
+#endif
 
   //for (int x=0; x <= HTTP.args(); x++) {
   //  Serial.println(HTTP.arg(x));
   //}
 
   String request = server->arg(0);
+
+#if 0
   Serial.print("request:");
   Serial.println(request);
 
   Serial.println("Responding to Control request");
+#endif
 
   String response_xml = "";
 
   if(request.indexOf("<BinaryState>1</BinaryState>") > 0) {
-      Serial.println("Got Turn on request");
-      onCallback();
+      Serial.printf("Got turn on request pin: %d\r\n", pin);
+      callback(pin, (! reverse) ? HIGH : LOW);
       response_xml =  "<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">"
                         "<s:Body>"
                           "<u:SetBinaryStateResponse xmlns:u=\"urn:Belkin:service:basicevent:1\">"
@@ -134,8 +137,8 @@ void WemoSwitch::handleUpnpControl(){
   }
 
   if(request.indexOf("<BinaryState>0</BinaryState>") > 0) {
-      Serial.println("Got Turn off request");
-      offCallback();
+      Serial.printf("Got turn off request pin: %d\r\n", pin);
+      callback(pin, (! reverse) ? LOW : HIGH);
       response_xml =  "<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">"
                         "<s:Body>"
                           "<u:SetBinaryStateResponse xmlns:u=\"urn:Belkin:service:basicevent:1\">"
@@ -147,8 +150,13 @@ void WemoSwitch::handleUpnpControl(){
   }
 
   server->send(200, "text/xml", response_xml.c_str());
+
+#if 0
   Serial.print("Sending :");
   Serial.println(response_xml);
+#endif
+
+  Serial.printf("Responded to Control request %s (%s) with %s\r\n", request.c_str(), device_name.c_str(), response_xml.c_str());
 }
 
 void WemoSwitch::handleRoot(){
@@ -156,9 +164,10 @@ void WemoSwitch::handleRoot(){
 }
 
 void WemoSwitch::handleSetupXml(){
-  Serial.println(" ########## Responding to setup.xml ... ########\n");
+  Serial.printf(" ########## Responding to setup.xml ... (%s) ########\n", device_name.c_str());
 
 #if 0
+  Serial.println(" ########## Responding to setup.xml ... ########\n");
   IPAddress localIP = WiFi.localIP();
   char s[16];
   sprintf(s, "%d.%d.%d.%d", localIP[0], localIP[1], localIP[2], localIP[3]);
@@ -197,9 +206,11 @@ void WemoSwitch::handleSetupXml(){
          "\r\n";
 
     server->send(200, "text/xml", setup_xml.c_str());
-
+    Serial.printf("Sending : %s\r\n", setup_xml.c_str());
+#if 0
     Serial.print("Sending :");
     Serial.println(setup_xml);
+#endif
 }
 
 String WemoSwitch::getAlexaInvokeName() {
@@ -207,7 +218,7 @@ String WemoSwitch::getAlexaInvokeName() {
 }
 
 void WemoSwitch::respondToSearch(IPAddress& senderIP, unsigned int senderPort) {
-	Serial.printf("Sending response to: %s:%d ... ", senderIP.toString().c_str(), senderPort);
+  Serial.printf("Sending response to: %s:%d ... ", senderIP.toString().c_str(), senderPort);
 #if 0
   Serial.println("");
   Serial.print("Sending response to ");
