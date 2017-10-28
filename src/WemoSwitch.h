@@ -15,9 +15,10 @@ private:
         String serial;
         String persistent_uuid;
         String device_name;
+        int pin;
         unsigned int localPort;
-        CallbackFunction onCallback;
-        CallbackFunction offCallback;
+        CallbackFunction callback;
+        boolean reverse;
 
         void startWebServer();
         void handleEventservice();
@@ -26,7 +27,7 @@ private:
         void handleSetupXml();
 public:
         WemoSwitch();
-        WemoSwitch(String alexaInvokeName, unsigned int port, CallbackFunction onCallback, CallbackFunction offCallback);
+        WemoSwitch(String alexaInvokeName, int pin, unsigned int port, CallbackFunction cb, boolean rev = false);
         ~WemoSwitch();
         String getAlexaInvokeName();
         void serverLoop();

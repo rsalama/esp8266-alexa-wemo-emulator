@@ -27,14 +27,16 @@ bool WemoManager::begin(){
   Serial.println("Begin multicast ..");
 
   if(UDP.beginMulticast(WiFi.localIP(), ipMulti, portMulti)) {
+	Serial.printf("Udp multicast server started at: %s:%d\r\n", ipMulti.toString().c_str(), portMulti);
+#if 0
     Serial.print("Udp multicast server started at ");
     Serial.print(ipMulti);
     Serial.print(":");
     Serial.println(portMulti);
-
+#endif
     state = true;
   }
-  else{
+  else {
     Serial.println("Connection failed");
   }
 
@@ -43,21 +45,25 @@ bool WemoManager::begin(){
 
 //Switch *ptrArray;
 
+void WemoManager::addDevice(WemoSwitch* device) {
+  addDevice(*device);
+}
+
 void WemoManager::addDevice(WemoSwitch& device) {
+  Serial.printf("Adding switch: %s index: %d\r\n\r\n", device.getAlexaInvokeName().c_str(), numOfSwitchs);
+#if 0
   Serial.print("Adding switch : ");
   Serial.print(device.getAlexaInvokeName());
   Serial.print(" index : ");
   Serial.println(numOfSwitchs);
-
+#endif
   switches[numOfSwitchs] = device;
   numOfSwitchs++;
 }
 
-void WemoManager::serverLoop(){
-
+void WemoManager::serverLoop() {
   int packetSize = UDP.parsePacket();
-  if (packetSize > 0)
-  {
+  if (packetSize > 0) {
     IPAddress senderIP = UDP.remoteIP();
     unsigned int senderPort = UDP.remotePort();
 

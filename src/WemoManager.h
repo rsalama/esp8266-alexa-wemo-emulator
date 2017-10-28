@@ -15,6 +15,7 @@ public:
         bool begin();
         void serverLoop();
         void addDevice(WemoSwitch& device);
+        void addDevice(WemoSwitch* device);
 };
 
 #endif
